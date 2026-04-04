@@ -1,0 +1,12 @@
+_build/
+generated/
+src/generated/
+rocqsweeper
+*.vo
+*.vok
+*.vos
+*.glob
+.lia.cache
+*.dSYM
+.DS_Store
+*.aux

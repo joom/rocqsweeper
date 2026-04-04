@@ -1,0 +1,5 @@
+(coq.theory
+ (name RocqsweeperGame)
+ (synopsis "Rocqsweeper in Rocq, extracted to C++ via Crane")
+ (theories Stdlib Crane)
+ (flags (:standard -output-directory %{project_root})))
