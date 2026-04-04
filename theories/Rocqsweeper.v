@@ -10,17 +10,18 @@ Import ListNotations.
 From Stdlib Require Import Bool.
 From Stdlib Require Import Strings.String Strings.Ascii.
 From Crane Require Import Mapping.NatIntStd.
-From Crane Require Import Mapping.Std Monads.ITree Monads.IO.
+From Crane Require Import Mapping.Std Monads.ITree.
 From Crane Require Extraction.
 From RocqsweeperGame Require Import SDL.
 
 Local Open Scope pstring_scope.
+Local Open Scope itree_scope.
 
 (** Namespace containing the pure game logic, rendering, and extracted main loop. *)
 Module Rocqsweeper.
 
-Import IO_axioms.
-Import MonadNotations.
+Import ITreeNotations.
+
 
 (** Board coordinates, stored as a row and column. *)
 Record position : Type := mkPos { prow : nat; pcol : nat }.
@@ -518,7 +519,7 @@ Definition glyph_row_data (g row : nat) : nat :=
 
 (** Draw one row of one bitmap glyph. *)
 Fixpoint draw_glyph_row (ren : sdl_renderer) (sx sy row_bits dx count scale : nat)
-  : IO void :=
+  : itree sdlE void :=
   match count with
   | 0 => Ret ghost
   | S count' =>
@@ -530,7 +531,7 @@ Fixpoint draw_glyph_row (ren : sdl_renderer) (sx sy row_bits dx count scale : na
 
 (** Draw all bitmap rows of one glyph. *)
 Fixpoint draw_glyph_rows (ren : sdl_renderer) (sx sy g row count scale : nat)
-  : IO void :=
+  : itree sdlE void :=
   match count with
   | 0 => Ret ghost
   | S count' =>
@@ -539,7 +540,7 @@ Fixpoint draw_glyph_rows (ren : sdl_renderer) (sx sy g row count scale : nat)
   end.
 
 (** Draw a single glyph at a given location. *)
-Definition draw_one_glyph (ren : sdl_renderer) (sx sy g scale : nat) : IO void :=
+Definition draw_one_glyph (ren : sdl_renderer) (sx sy g scale : nat) : itree sdlE void :=
   draw_glyph_rows ren sx sy g 0 7 scale.
 
 (** Map an ASCII character to the corresponding bitmap glyph id. *)
@@ -562,7 +563,7 @@ Fixpoint string_to_glyphs (s : String.string) : list nat :=
 
 (** Draw a list of glyph ids in a row. *)
 Fixpoint draw_glyphs (ren : sdl_renderer) (sx sy scale : nat) (glyphs : list nat)
-  : IO void :=
+  : itree sdlE void :=
   match glyphs with
   | [] => Ret ghost
   | g :: rest =>
@@ -572,7 +573,7 @@ Fixpoint draw_glyphs (ren : sdl_renderer) (sx sy scale : nat) (glyphs : list nat
 
 (** Draw the decimal digits of a natural number recursively. *)
 Fixpoint draw_number_digits (ren : sdl_renderer) (sx sy scale : nat)
-    (digits : list nat) : IO void :=
+    (digits : list nat) : itree sdlE void :=
   match digits with
   | [] => Ret ghost
   | d :: rest =>
@@ -581,16 +582,16 @@ Fixpoint draw_number_digits (ren : sdl_renderer) (sx sy scale : nat)
   end.
 
 (** Draw a natural number using the bitmap font. *)
-Definition draw_number (ren : sdl_renderer) (n sx sy scale : nat) : IO void :=
+Definition draw_number (ren : sdl_renderer) (n sx sy scale : nat) : itree sdlE void :=
   draw_number_digits ren sx sy scale (nat_digit_list n).
 
 (** Draw a Rocq string using the bitmap font. *)
 Definition draw_text (ren : sdl_renderer) (sx sy scale : nat) (msg : String.string)
-  : IO void :=
+  : itree sdlE void :=
   draw_glyphs ren sx sy scale (string_to_glyphs msg).
 
 (** Draw the colored numeral for a revealed numbered cell. *)
-Definition draw_cell_number (ren : sdl_renderer) (n x y : nat) : IO void :=
+Definition draw_cell_number (ren : sdl_renderer) (n x y : nat) : itree sdlE void :=
   let '(r, g, b) :=
     match n with
     | 1 => (40, 80, 210)
@@ -606,7 +607,7 @@ Definition draw_cell_number (ren : sdl_renderer) (n x y : nat) : IO void :=
   draw_one_glyph ren x y n 2.
 
 (** Draw the flag icon for a flagged cell. *)
-Definition draw_flag (ren : sdl_renderer) (x y : nat) : IO void :=
+Definition draw_flag (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_set_draw_color ren 60 60 60 ;;
   sdl_fill_rect ren (x + 15) (y + 8) 3 24 ;;
   sdl_set_draw_color ren 220 60 60 ;;
@@ -615,7 +616,7 @@ Definition draw_flag (ren : sdl_renderer) (x y : nat) : IO void :=
   sdl_fill_rect ren (x + 10) (y + 14) 6 3.
 
 (** Draw the mine icon for a mined cell. *)
-Definition draw_mine (ren : sdl_renderer) (x y : nat) : IO void :=
+Definition draw_mine (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_set_draw_color ren 30 30 30 ;;
   sdl_fill_rect ren (x + 12) (y + 12) 14 14 ;;
   sdl_fill_rect ren (x + 5) (y + 17) 28 4 ;;
@@ -624,7 +625,7 @@ Definition draw_mine (ren : sdl_renderer) (x y : nat) : IO void :=
   sdl_fill_rect ren (x + 14) (y + 14) 4 4.
 
 (** Draw the background of a hidden cell. *)
-Definition draw_hidden_tile (ren : sdl_renderer) (x y : nat) : IO void :=
+Definition draw_hidden_tile (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_set_draw_color ren 132 151 173 ;;
   sdl_fill_rect ren x y cell_size cell_size ;;
   sdl_set_draw_color ren 176 190 205 ;;
@@ -635,7 +636,7 @@ Definition draw_hidden_tile (ren : sdl_renderer) (x y : nat) : IO void :=
   sdl_fill_rect ren (x + cell_size - 5) y 5 cell_size.
 
 (** Draw the background of a revealed cell. *)
-Definition draw_revealed_tile (ren : sdl_renderer) (x y : nat) : IO void :=
+Definition draw_revealed_tile (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_set_draw_color ren 222 226 230 ;;
   sdl_fill_rect ren x y cell_size cell_size ;;
   sdl_set_draw_color ren 190 195 199 ;;
@@ -643,7 +644,7 @@ Definition draw_revealed_tile (ren : sdl_renderer) (x y : nat) : IO void :=
   sdl_fill_rect ren x y 1 cell_size.
 
 (** Draw the yellow selection frame around the current cursor cell. *)
-Definition draw_cursor (ren : sdl_renderer) (x y : nat) : IO void :=
+Definition draw_cursor (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_set_draw_color ren 255 215 0 ;;
   sdl_fill_rect ren x y cell_size 3 ;;
   sdl_fill_rect ren x y 3 cell_size ;;
@@ -652,7 +653,7 @@ Definition draw_cursor (ren : sdl_renderer) (x y : nat) : IO void :=
 
 (** Draw the visible contents of one tile. *)
 Definition draw_tile_contents (ren : sdl_renderer) (x y : nat) (t : tile) (show_mines : bool)
-  : IO void :=
+  : itree sdlE void :=
   if tile_revealed t then
     if tile_mine t then draw_mine ren x y
     else if Nat.eqb (tile_adjacent t) 0 then Ret ghost
@@ -665,7 +666,7 @@ Definition draw_tile_contents (ren : sdl_renderer) (x y : nat) (t : tile) (show_
 
 (** Draw one board row. *)
 Fixpoint draw_row (ren : sdl_renderer) (row col : nat) (cells : list tile)
-    (cur : position) (show_mines : bool) : IO void :=
+    (cur : position) (show_mines : bool) : itree sdlE void :=
   match cells with
   | [] => Ret ghost
   | t :: rest =>
@@ -679,7 +680,7 @@ Fixpoint draw_row (ren : sdl_renderer) (row col : nat) (cells : list tile)
 
 (** Draw the whole board row by row. *)
 Fixpoint draw_rows (ren : sdl_renderer) (row : nat) (rows : list (list tile))
-    (cur : position) (show_mines : bool) : IO void :=
+    (cur : position) (show_mines : bool) : itree sdlE void :=
   match rows with
   | [] => Ret ghost
   | cells :: rest =>
@@ -704,18 +705,18 @@ Definition msg_restart_exit_hint : String.string := "Restart: R   Exit: Esc"%str
 
 (** Draw a text label followed by a numeric value. *)
 Definition draw_label_number (ren : sdl_renderer) (label : String.string) (n x y : nat)
-  : IO void :=
+  : itree sdlE void :=
   sdl_set_draw_color ren 20 35 50 ;;
   draw_text ren x y 2 label ;;
   draw_number ren n (x + 78) y 2.
 
 (** Draw one line of status text. *)
-Definition draw_status_text (ren : sdl_renderer) (msg : String.string) (x y : nat) : IO void :=
+Definition draw_status_text (ren : sdl_renderer) (msg : String.string) (x y : nat) : itree sdlE void :=
   sdl_set_draw_color ren 20 35 50 ;;
   draw_text ren x y 2 msg.
 
 (** Draw the counters, outcome banner, and controls help. *)
-Definition draw_status_bar (ren : sdl_renderer) (gs : game_state) : IO void :=
+Definition draw_status_bar (ren : sdl_renderer) (gs : game_state) : itree sdlE void :=
   let top := board_height * cell_size in
   sdl_set_draw_color ren 208 214 221 ;;
   sdl_fill_rect ren 0 top win_width status_height ;;
@@ -731,7 +732,7 @@ Definition draw_status_bar (ren : sdl_renderer) (gs : game_state) : IO void :=
   end.
 
 (** Render one complete frame for the current game state. *)
-Definition render_frame (ren : sdl_renderer) (gs : game_state) : IO void :=
+Definition render_frame (ren : sdl_renderer) (gs : game_state) : itree sdlE void :=
   sdl_set_draw_color ren 245 246 247 ;;
   sdl_clear ren ;;
   draw_rows ren 0 (board gs) (cursor gs)
@@ -746,7 +747,7 @@ Record loop_state : Type := mkLoop {
 }.
 
 (** Sleep long enough to respect the target frame time. *)
-Definition frame_delay (frame_start : nat) : IO void :=
+Definition frame_delay (frame_start : nat) : itree sdlE void :=
   now2 <- sdl_get_ticks ;;
   let elapsed := now2 - frame_start in
   if Nat.ltb elapsed frame_ms
@@ -774,7 +775,7 @@ Definition is_reveal_event (ev : nat) : bool :=
   Nat.eqb ev 6 || Nat.eqb ev 9.
 
 (** Choose and play the appropriate reveal-related sound effect. *)
-Definition maybe_play_sound (ev : nat) (before after : game_state) : IO void :=
+Definition maybe_play_sound (ev : nat) (before after : game_state) : itree sdlE void :=
   if negb (is_reveal_event ev) then Ret ghost
   else if negb (phase_eqb (game_phase before) Won) && phase_eqb (game_phase after) Won
        then sdl_play_sound snd_win
@@ -787,7 +788,7 @@ Definition maybe_play_sound (ev : nat) (before after : game_state) : IO void :=
 
 (** Process one input frame and produce the next loop state. *)
 Definition process_frame (ren : sdl_renderer) (ls : loop_state)
-  : IO (bool * loop_state) :=
+  : itree sdlE (bool * loop_state) :=
   frame_start <- sdl_get_ticks ;;
   ev <- sdl_poll_event ;;
   mx <- sdl_get_mouse_x ;;
@@ -801,7 +802,7 @@ Definition process_frame (ren : sdl_renderer) (ls : loop_state)
   Ret (quit, ls1).
 
 (** Initialize SDL resources and the initial loop state. *)
-Definition init_game : IO (sdl_window * sdl_renderer * loop_state) :=
+Definition init_game : itree sdlE (sdl_window * sdl_renderer * loop_state) :=
   win <- sdl_create_window "Rocqsweeper" win_width win_height ;;
   ren <- sdl_create_renderer win ;;
   t0 <- sdl_get_ticks ;;
@@ -810,25 +811,25 @@ Definition init_game : IO (sdl_window * sdl_renderer * loop_state) :=
   Ret (win, ren, mkLoop gs t0).
 
 (** Release SDL resources before exiting. *)
-Definition cleanup (ren : sdl_renderer) (win : sdl_window) : IO void :=
+Definition cleanup (ren : sdl_renderer) (win : sdl_window) : itree sdlE void :=
   sdl_destroy ren win.
 
 End Rocqsweeper.
 
 Import Rocqsweeper.
-Import MonadNotations.
+Import ITreeNotations.
 
 Axiom c_int : Type.
 Axiom c_zero : c_int.
 
 (** Cleanup wrapper returning a C integer exit code. *)
-Definition exit_game (win : sdl_window) (ren : sdl_renderer) : IO c_int :=
+Definition exit_game (win : sdl_window) (ren : sdl_renderer) : itree sdlE c_int :=
   cleanup ren win ;;
   Ret c_zero.
 
 (** Main recursive SDL game loop with a fuel parameter for extraction. *)
 Fixpoint run_game (fuel : nat) (win : sdl_window) (ren : sdl_renderer)
-                  (ls : loop_state) : IO c_int :=
+                  (ls : loop_state) : itree sdlE c_int :=
   match fuel with
   | 0 => exit_game win ren
   | S fuel' =>
@@ -837,8 +838,8 @@ Fixpoint run_game (fuel : nat) (win : sdl_window) (ren : sdl_renderer)
     if quit then exit_game win ren else run_game fuel' win ren ls'
   end.
 
-(** Program entry point used by extraction. *)
-Definition main : IO c_int :=
+(** Program entry point used by extraction and wrapped by the C++ launcher. *)
+Definition game_main : itree sdlE c_int :=
   init <- init_game ;;
   let '(win_ren, ls) := init in
   let '(win, ren) := win_ren in
@@ -847,4 +848,4 @@ Definition main : IO c_int :=
 Crane Extract Inlined Constant c_int => "int".
 Crane Extract Inlined Constant c_zero => "0".
 
-Crane Extraction "rocqsweeper" Rocqsweeper main.
+Crane Extraction "rocqsweeper" Rocqsweeper game_main.
