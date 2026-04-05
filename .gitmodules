@@ -1,4 +1,4 @@
 [submodule "crane"]
 	path = crane
-	url = /Users/joomy/work/crane
+	url = https://github.com/bloomberg/crane.git
 	branch = main

@@ -8,17 +8,21 @@ homepage: "https://github.com/joom/rocqsweeper"
 bug-reports: "https://github.com/joom/rocqsweeper/issues"
 depends: [
   "ocaml"
-  "dune" {>= "3.18"}
+  "dune" {>= "3.17"}
   "coq" {>= "9.0.0"}
+  "coq-itree"
+  "coq-ext-lib"
+  "coq-paco"
   "rocq-runtime"
   "rocq-crane" {= "dev"}
 ]
 build: [
-  ["dune" "build"]
+  "dune" "build"
 ]
 install: [
-  ["dune" "install" "--prefix=%{prefix}%"]
+  "dune" "install"
 ]
+flags: light-uninstall
 remove: [
   ["dune" "uninstall"]
 ]

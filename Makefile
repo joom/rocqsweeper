@@ -24,13 +24,13 @@ ifeq ($(IS_CLANG),yes)
   BRACKET_DEPTH_FLAG := -fbracket-depth=1024
 endif
 
-SDL2_CFLAGS := $(shell pkg-config --cflags sdl2 SDL2_image SDL2_mixer)
-SDL2_LIBS   := $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer)
+SDL2_CFLAGS = $(shell pkg-config --cflags sdl2 SDL2_image SDL2_mixer)
+SDL2_LIBS   = $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer)
 
-CXXFLAGS := -std=c++23 $(BRACKET_DEPTH_FLAG) -I$(GEN_DIR) -I$(SRC_DIR) -I$(CRANE_DIR)/theories/cpp $(SDL2_CFLAGS)
+CXXFLAGS = -std=c++23 $(BRACKET_DEPTH_FLAG) -I$(GEN_DIR) -I$(SRC_DIR) -I$(CRANE_DIR)/theories/cpp $(SDL2_CFLAGS)
 OPT ?= -O0
 
-.PHONY: all clean run extract check-crane repro
+.PHONY: all clean run extract check check-crane repro
 
 all: rocqsweeper
 
@@ -46,11 +46,14 @@ extract: check-crane theories/Rocqsweeper.v theories/SDLDefs.v theories/SDL.v
 	@mkdir -p $(GEN_DIR)
 	cp $(BUILD_DIR)/rocqsweeper.h $(BUILD_DIR)/rocqsweeper.cpp $(GEN_DIR)/
 
+check:
+	dune build -p rocqsweeper
+
 $(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h: theories/Rocqsweeper.v theories/SDLDefs.v theories/SDL.v
 	$(MAKE) extract
 
 rocqsweeper: check-crane $(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h
-	$(CXX) $(CXXFLAGS) $(OPT) $(LDFLAGS) $(SDL2_LIBS) $(GEN_DIR)/rocqsweeper.cpp -o rocqsweeper
+	$(CXX) $(CXXFLAGS) $(OPT) $(LDFLAGS) $(GEN_DIR)/rocqsweeper.cpp $(SDL2_LIBS) -o rocqsweeper
 
 clean:
 	dune clean

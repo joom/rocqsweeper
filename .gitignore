@@ -10,3 +10,4 @@ rocqsweeper
 *.dSYM
 .DS_Store
 *.aux
+*.install
