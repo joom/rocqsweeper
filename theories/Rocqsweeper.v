@@ -838,8 +838,8 @@ Fixpoint run_game (fuel : nat) (win : sdl_window) (ren : sdl_renderer)
     if quit then exit_game win ren else run_game fuel' win ren ls'
   end.
 
-(** Program entry point used by extraction and wrapped by the C++ launcher. *)
-Definition game_main : itree sdlE c_int :=
+(** Program entry point used by extraction. *)
+Definition main : itree sdlE c_int :=
   init <- init_game ;;
   let '(win_ren, ls) := init in
   let '(win, ren) := win_ren in
@@ -848,4 +848,4 @@ Definition game_main : itree sdlE c_int :=
 Crane Extract Inlined Constant c_int => "int".
 Crane Extract Inlined Constant c_zero => "0".
 
-Crane Extraction "rocqsweeper" Rocqsweeper game_main.
+Crane Extraction "rocqsweeper" Rocqsweeper main.

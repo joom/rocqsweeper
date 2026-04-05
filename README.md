@@ -154,7 +154,6 @@ This removes:
 ├── crane/                   Crane submodule used for extraction
 ├── src/
 │   ├── generated/           extracted C++ build artifacts
-│   ├── main.cpp             native wrapper that calls the extracted entrypoint
 │   └── sdl_helpers.h        C++ SDL and audio helper functions
 ├── theories/
 │   ├── GameProofs.v         proofs about the core Minesweeper rules
@@ -187,5 +186,5 @@ These proofs are about the actual Rocq implementation in [`theories/Rocqsweeper.
 - The authoritative game logic lives in Rocq, not in the generated C++.
 - The build expects Crane at [`crane/`](./crane).
 - [`src/sdl_helpers.h`](./src/sdl_helpers.h) is the main handwritten C++ integration layer.
-- [`src/main.cpp`](./src/main.cpp) is the small handwritten launcher for the extracted `game_main` function.
+- The extracted program now defines its own `main`, so there is no separate handwritten `main.cpp`.
 - If extraction succeeds but sound does not play on Linux, check that one of `mpg123`, `ffplay`, or `play` is installed.

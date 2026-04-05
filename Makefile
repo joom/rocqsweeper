@@ -49,8 +49,8 @@ extract: check-crane theories/Rocqsweeper.v theories/SDL.v
 $(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h: theories/Rocqsweeper.v theories/SDL.v
 	$(MAKE) extract
 
-rocqsweeper: check-crane $(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h $(SRC_DIR)/main.cpp
-	$(CXX) $(CXXFLAGS) $(OPT) $(LDFLAGS) $(SDL2_LIBS) $(GEN_DIR)/rocqsweeper.cpp $(SRC_DIR)/main.cpp -o rocqsweeper
+rocqsweeper: check-crane $(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h
+	$(CXX) $(CXXFLAGS) $(OPT) $(LDFLAGS) $(SDL2_LIBS) $(GEN_DIR)/rocqsweeper.cpp -o rocqsweeper
 
 clean:
 	dune clean
