@@ -63,6 +63,21 @@ The exact package names vary by distribution, but you generally need:
 sudo apt install clang pkg-config libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
 ```
 
+### opam
+
+If you want to build the Rocq development through opam, pin the local Crane
+submodule first:
+
+```bash
+opam pin add rocq-crane ./crane
+```
+
+Then you can install the Rocqsweeper package from the current checkout:
+
+```bash
+opam install .
+```
+
 ## Building
 
 Build the game:
@@ -163,6 +178,7 @@ These proofs are about the actual Rocq implementation in [`theories/Rocqsweeper.
 
 - The authoritative game logic lives in Rocq, not in the generated C++.
 - The build expects Crane at [`crane/`](./crane).
+- The opam package expects you to pin the local Crane submodule manually with `opam pin add rocq-crane ./crane`.
 - [`src/sdl_helpers.h`](./src/sdl_helpers.h) is the main handwritten C++ integration layer.
 - The extracted program now defines its own `main`, so there is no separate handwritten `main.cpp`.
 - [`src/sdl_helpers.h`](./src/sdl_helpers.h) initializes SDL audio lazily and caches loaded sound chunks for reuse.

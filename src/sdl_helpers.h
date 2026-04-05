@@ -92,72 +92,92 @@ inline void sdl_draw_point(sdl_renderer r,
   SDL_RenderDrawPoint(r, (int)x, (int)y);
 }
 
+namespace {
+inline unsigned int &sdl_last_key_code_ref() {
+  static unsigned int code = 0;
+  return code;
+}
+
+inline unsigned int &sdl_last_mouse_button_ref() {
+  static unsigned int button = 0;
+  return button;
+}
+
+inline unsigned int &sdl_last_mouse_x_ref() {
+  static unsigned int x = 0;
+  return x;
+}
+
+inline unsigned int &sdl_last_mouse_y_ref() {
+  static unsigned int y = 0;
+  return y;
+}
+
+inline void sdl_store_mouse_position(int x, int y) {
+  sdl_last_mouse_x_ref() = x < 0 ? 0u : (unsigned int)x;
+  sdl_last_mouse_y_ref() = y < 0 ? 0u : (unsigned int)y;
+}
+}
+
 // current mouse position in window coordinates
 inline unsigned int sdl_last_mouse_x() {
   int x = 0;
   int y = 0;
   SDL_GetMouseState(&x, &y);
-  (void)y;
-  return x < 0 ? 0u : (unsigned int)x;
+  sdl_store_mouse_position(x, y);
+  return sdl_last_mouse_x_ref();
 }
 
 inline unsigned int sdl_last_mouse_y() {
   int x = 0;
   int y = 0;
   SDL_GetMouseState(&x, &y);
-  (void)x;
-  return y < 0 ? 0u : (unsigned int)y;
+  sdl_store_mouse_position(x, y);
+  return sdl_last_mouse_y_ref();
+}
+
+// last decoded SDL key code from event polling
+inline unsigned int sdl_last_key_code() {
+  return sdl_last_key_code_ref();
+}
+
+// last decoded SDL mouse button from event polling
+inline unsigned int sdl_last_mouse_button() {
+  return sdl_last_mouse_button_ref();
 }
 
 // event polling
 // Returns:
-// 0=none, 1=quit, 2=up, 3=down, 4=left, 5=right, 6=reveal, 7=flag, 8=restart,
-// 9=left-click, 10=right-click
-inline unsigned int sdl_poll_event() {
+// 0=none, 1=quit, 2=key-down, 3=key-up, 4=mouse-motion,
+// 5=mouse-button-down, 6=mouse-button-up
+inline unsigned int sdl_poll_event_kind() {
   SDL_Event ev;
-  unsigned int result = 0;
   while (SDL_PollEvent(&ev)) {
-    if (ev.type == SDL_QUIT) return 1;
-    if (ev.type == SDL_MOUSEBUTTONDOWN) {
-      if (ev.button.button == SDL_BUTTON_LEFT) return 9;
-      if (ev.button.button == SDL_BUTTON_RIGHT) return 10;
-    }
-    if (ev.type == SDL_KEYDOWN) {
-      switch (ev.key.keysym.sym) {
-      case SDLK_ESCAPE:
-      case SDLK_q:
-        return 1;
-      case SDLK_UP:
-      case SDLK_w:
-        result = 2;
-        break;
-      case SDLK_DOWN:
-      case SDLK_s:
-        result = 3;
-        break;
-      case SDLK_LEFT:
-      case SDLK_a:
-        result = 4;
-        break;
-      case SDLK_RIGHT:
-      case SDLK_d:
-        result = 5;
-        break;
-      case SDLK_SPACE:
-        result = 6;
-        break;
-      case SDLK_f:
-        result = 7;
-        break;
-      case SDLK_r:
-        result = 8;
-        break;
-      default:
-        break;
-      }
+    switch (ev.type) {
+    case SDL_QUIT:
+      return 1;
+    case SDL_KEYDOWN:
+      sdl_last_key_code_ref() = (unsigned int)ev.key.keysym.sym;
+      return 2;
+    case SDL_KEYUP:
+      sdl_last_key_code_ref() = (unsigned int)ev.key.keysym.sym;
+      return 3;
+    case SDL_MOUSEMOTION:
+      sdl_store_mouse_position(ev.motion.x, ev.motion.y);
+      return 4;
+    case SDL_MOUSEBUTTONDOWN:
+      sdl_last_mouse_button_ref() = (unsigned int)ev.button.button;
+      sdl_store_mouse_position(ev.button.x, ev.button.y);
+      return 5;
+    case SDL_MOUSEBUTTONUP:
+      sdl_last_mouse_button_ref() = (unsigned int)ev.button.button;
+      sdl_store_mouse_position(ev.button.x, ev.button.y);
+      return 6;
+    default:
+      break;
     }
   }
-  return result;
+  return 0;
 }
 
 // timing

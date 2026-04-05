@@ -390,54 +390,80 @@ Definition restart_state (gs : game_state) : game_state :=
 Definition set_cursor (p : position) (gs : game_state) : game_state :=
   mkState (board gs) p (game_phase gs) (waiting_for_first_reveal gs) (seed gs).
 
+(** Update the cursor by applying a function to the current cursor position. *)
+Definition map_cursor (f : position -> position) (gs : game_state) : game_state :=
+  set_cursor (f (cursor gs)) gs.
+
 (** Pixel height of the playable grid without the status bar. *)
 Definition board_pixel_height : nat := board_height * cell_size.
 
-(** Map mouse coordinates to a board position when the pointer is inside the grid. *)
-Definition mouse_board_pos (mx my : nat) : option position :=
+(** Map a mouse position to a board position when the pointer is inside the grid. *)
+Definition mouse_board_pos (mp : nat * nat) : option position :=
+  let '(mx, my) := mp in
   if Nat.ltb mx win_width && Nat.ltb my board_pixel_height
   then Some (mkPos (Nat.div my cell_size) (Nat.div mx cell_size))
   else None.
 
-(** Interpret a mouse click as a reveal action when it hits the board. *)
-Definition mouse_reveal (mx my : nat) (gs : game_state) : game_state :=
-  match mouse_board_pos mx my with
-  | Some p => reveal_at_cursor (set_cursor p gs)
+(** Apply a position-based state update when the mouse is over a board cell. *)
+Definition with_mouse_board_pos
+    (f : position -> game_state -> game_state) (mp : nat * nat) (gs : game_state)
+  : game_state :=
+  match mouse_board_pos mp with
+  | Some p => f p gs
   | None => gs
   end.
+
+(** Interpret a mouse click as a reveal action when it hits the board. *)
+Definition mouse_reveal (mp : nat * nat) (gs : game_state) : game_state :=
+  with_mouse_board_pos (fun p gs0 => reveal_at_cursor (set_cursor p gs0)) mp gs.
 
 (** Interpret a mouse click as a flag action when it hits the board. *)
-Definition mouse_flag (mx my : nat) (gs : game_state) : game_state :=
-  match mouse_board_pos mx my with
-  | Some p => toggle_flag_at_cursor (set_cursor p gs)
-  | None => gs
-  end.
+Definition mouse_flag (mp : nat * nat) (gs : game_state) : game_state :=
+  with_mouse_board_pos (fun p gs0 => toggle_flag_at_cursor (set_cursor p gs0)) mp gs.
 
 (** Move the logical cursor to the hovered cell when the mouse is on the board. *)
-Definition sync_cursor_with_mouse (mx my : nat) (gs : game_state) : game_state :=
-  match mouse_board_pos mx my with
-  | Some p => set_cursor p gs
-  | None => gs
+Definition sync_cursor_with_mouse (mp : nat * nat) (gs : game_state) : game_state :=
+  with_mouse_board_pos set_cursor mp gs.
+
+(** Move the cursor in response to a directional key press. *)
+Definition handle_direction_key (key : sdl_key) (gs : game_state) : game_state :=
+  match key with
+  | KeyUp | KeyW => map_cursor (move_cursor_row true) gs
+  | KeyDown | KeyS => map_cursor (move_cursor_row false) gs
+  | KeyLeft | KeyA => map_cursor (move_cursor_col true) gs
+  | KeyRight | KeyD => map_cursor (move_cursor_col false) gs
+  | _ => gs
   end.
 
-(** Translate an abstract input event into a quit flag and next pure state. *)
-Definition handle_event (ev mx my : nat) (gs : game_state) : bool * game_state :=
-  match ev with
-  | 1 => (true, gs)
-  | 2 => (false, mkState (board gs) (move_cursor_row true (cursor gs))
-                          (game_phase gs) (waiting_for_first_reveal gs) (seed gs))
-  | 3 => (false, mkState (board gs) (move_cursor_row false (cursor gs))
-                          (game_phase gs) (waiting_for_first_reveal gs) (seed gs))
-  | 4 => (false, mkState (board gs) (move_cursor_col true (cursor gs))
-                          (game_phase gs) (waiting_for_first_reveal gs) (seed gs))
-  | 5 => (false, mkState (board gs) (move_cursor_col false (cursor gs))
-                          (game_phase gs) (waiting_for_first_reveal gs) (seed gs))
-  | 6 => (false, reveal_at_cursor gs)
-  | 7 => (false, toggle_flag_at_cursor gs)
-  | 8 => (false, restart_state gs)
-  | 9 => (false, mouse_reveal mx my gs)
-  | 10 => (false, mouse_flag mx my gs)
+(** Translate a key press into a quit flag and next pure state. *)
+Definition handle_key_down (key : sdl_key) (gs : game_state) : bool * game_state :=
+  match key with
+  | KeyEscape | KeyQ => (true, gs)
+  | KeySpace => (false, reveal_at_cursor gs)
+  | KeyF => (false, toggle_flag_at_cursor gs)
+  | KeyR => (false, restart_state gs)
+  | _ => (false, handle_direction_key key gs)
+  end.
+
+(** Translate a mouse-button press into a quit flag and next pure state. *)
+Definition handle_mouse_button_down (button : sdl_mouse_button)
+    (mp : nat * nat) (gs : game_state) : bool * game_state :=
+  match button with
+  | MouseLeft => (false, mouse_reveal mp gs)
+  | MouseRight => (false, mouse_flag mp gs)
   | _ => (false, gs)
+  end.
+
+(** Translate a generic SDL event into a quit flag and next pure state. *)
+Definition handle_event (ev : sdl_event) (gs : game_state) : bool * game_state :=
+  match ev with
+  | EventNone => (false, gs)
+  | EventQuit => (true, gs)
+  | EventKeyDown key => handle_key_down key gs
+  | EventKeyUp _ => (false, gs)
+  | EventMouseMotion mp => (false, sync_cursor_with_mouse mp gs)
+  | EventMouseButtonDown button mp => handle_mouse_button_down button mp gs
+  | EventMouseButtonUp _ _ => (false, gs)
   end.
 
 (** Left pixel coordinate of a column. *)
@@ -771,11 +797,15 @@ Definition phase_eqb (p1 p2 : phase) : bool :=
   end.
 
 (** Recognize the input events that should trigger reveal sounds. *)
-Definition is_reveal_event (ev : nat) : bool :=
-  Nat.eqb ev 6 || Nat.eqb ev 9.
+Definition is_reveal_event (ev : sdl_event) : bool :=
+  match ev with
+  | EventKeyDown KeySpace => true
+  | EventMouseButtonDown MouseLeft _ => true
+  | _ => false
+  end.
 
 (** Choose and play the appropriate reveal-related sound effect. *)
-Definition maybe_play_sound (ev : nat) (before after : game_state) : itree sdlE void :=
+Definition maybe_play_sound (ev : sdl_event) (before after : game_state) : itree sdlE void :=
   if negb (is_reveal_event ev) then Ret ghost
   else if negb (phase_eqb (game_phase before) Won) && phase_eqb (game_phase after) Won
        then sdl_play_sound snd_win
@@ -791,10 +821,9 @@ Definition process_frame (ren : sdl_renderer) (ls : loop_state)
   : itree sdlE (bool * loop_state) :=
   frame_start <- sdl_get_ticks ;;
   ev <- sdl_poll_event ;;
-  mx <- sdl_get_mouse_x ;;
-  my <- sdl_get_mouse_y ;;
-  let gs0 := sync_cursor_with_mouse mx my (ls_game ls) in
-  let '(quit, gs1) := handle_event ev mx my gs0 in
+  mp <- sdl_get_mouse_position ;;
+  let gs0 := sync_cursor_with_mouse mp (ls_game ls) in
+  let '(quit, gs1) := handle_event ev gs0 in
   maybe_play_sound ev gs0 gs1 ;;
   let ls1 := mkLoop gs1 (ls_started ls) in
   render_frame ren (ls_game ls1) ;;

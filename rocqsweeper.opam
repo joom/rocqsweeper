@@ -1,0 +1,30 @@
+opam-version: "2.0"
+synopsis: "Verified Minesweeper in Rocq extracted to C++ with Crane"
+description: "Rocqsweeper is a Minesweeper implementation written in Rocq, with pure game logic, proofs about the game and interaction layers, and extraction to C++ through Crane."
+maintainer: ["Joomy Korkut"]
+authors: ["Joomy Korkut"]
+license: "MIT"
+homepage: "https://github.com/joom/rocqsweeper"
+bug-reports: "https://github.com/joom/rocqsweeper/issues"
+depends: [
+  "ocaml"
+  "dune" {>= "3.18"}
+  "coq" {>= "9.0.0"}
+  "rocq-runtime"
+  "rocq-crane" {= "dev"}
+]
+build: [
+  ["dune" "build"]
+]
+install: [
+  ["dune" "install" "--prefix=%{prefix}%"]
+]
+remove: [
+  ["dune" "uninstall"]
+]
+tags: [
+  "keyword:game"
+  "keyword:minesweeper"
+  "keyword:extraction"
+  "keyword:C++"
+]

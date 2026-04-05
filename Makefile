@@ -40,13 +40,13 @@ check-crane:
 	   echo "expected symlink or checkout matching ~/work/rocqman/crane"; \
 	   exit 1)
 
-extract: check-crane theories/Rocqsweeper.v theories/SDL.v
+extract: check-crane theories/Rocqsweeper.v theories/SDLDefs.v theories/SDL.v
 	dune clean
 	dune build theories/Rocqsweeper.vo
 	@mkdir -p $(GEN_DIR)
 	cp $(BUILD_DIR)/rocqsweeper.h $(BUILD_DIR)/rocqsweeper.cpp $(GEN_DIR)/
 
-$(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h: theories/Rocqsweeper.v theories/SDL.v
+$(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h: theories/Rocqsweeper.v theories/SDLDefs.v theories/SDL.v
 	$(MAKE) extract
 
 rocqsweeper: check-crane $(GEN_DIR)/rocqsweeper.cpp $(GEN_DIR)/rocqsweeper.h

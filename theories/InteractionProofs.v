@@ -1,5 +1,5 @@
 From Stdlib Require Import Lia Bool PeanoNat.
-From RocqsweeperGame Require Import Rocqsweeper GameProofs.
+From RocqsweeperGame Require Import SDL Rocqsweeper GameProofs.
 
 Import Rocqsweeper.
 
@@ -8,12 +8,12 @@ Import Rocqsweeper.
 Inductive pure_interaction_step : game_state -> game_state -> Prop :=
 | PureInteractionSetCursor : forall p gs,
     pure_interaction_step gs (set_cursor p gs)
-| PureInteractionSyncCursor : forall mx my gs,
-    pure_interaction_step gs (sync_cursor_with_mouse mx my gs)
-| PureInteractionMouseReveal : forall mx my gs,
-    pure_interaction_step gs (mouse_reveal mx my gs)
-| PureInteractionMouseFlag : forall mx my gs,
-    pure_interaction_step gs (mouse_flag mx my gs).
+| PureInteractionSyncCursor : forall (mp : nat * nat) gs,
+    pure_interaction_step gs (sync_cursor_with_mouse mp gs)
+| PureInteractionMouseReveal : forall (mp : nat * nat) gs,
+    pure_interaction_step gs (mouse_reveal mp gs)
+| PureInteractionMouseFlag : forall (mp : nat * nat) gs,
+    pure_interaction_step gs (mouse_flag mp gs).
 
 (** Changing the cursor leaves the board itself unchanged. *)
 Lemma set_cursor_board :
@@ -53,50 +53,50 @@ Proof.
   intros. rewrite set_cursor_board. reflexivity.
 Qed.
 
-(** Mouse synchronization is a no-op when the mouse is outside the board. *)
+(** Mouse synchronization is a no-op when the pointer is outside the board. *)
 Lemma sync_cursor_with_mouse_outside :
-  forall mx my gs,
-    mouse_board_pos mx my = None ->
-    sync_cursor_with_mouse mx my gs = gs.
+  forall mp gs,
+    mouse_board_pos mp = None ->
+    sync_cursor_with_mouse mp gs = gs.
 Proof.
-  intros mx my gs Hmouse.
-  unfold sync_cursor_with_mouse.
+  intros mp gs Hmouse.
+  unfold sync_cursor_with_mouse, with_mouse_board_pos.
   rewrite Hmouse.
   reflexivity.
 Qed.
 
 (** Mouse synchronization sets the cursor to the hovered board cell. *)
 Lemma sync_cursor_with_mouse_inside :
-  forall mx my p gs,
-    mouse_board_pos mx my = Some p ->
-    sync_cursor_with_mouse mx my gs = set_cursor p gs.
+  forall mp p gs,
+    mouse_board_pos mp = Some p ->
+    sync_cursor_with_mouse mp gs = set_cursor p gs.
 Proof.
-  intros mx my p gs Hmouse.
-  unfold sync_cursor_with_mouse.
+  intros mp p gs Hmouse.
+  unfold sync_cursor_with_mouse, with_mouse_board_pos.
   rewrite Hmouse.
   reflexivity.
 Qed.
 
 (** Mouse synchronization does not change the hidden-safe-cell count. *)
 Lemma sync_cursor_with_mouse_hidden_safe_total :
-  forall mx my gs,
-    hidden_safe_total (board (sync_cursor_with_mouse mx my gs)) =
+  forall mp gs,
+    hidden_safe_total (board (sync_cursor_with_mouse mp gs)) =
     hidden_safe_total (board gs).
 Proof.
-  intros mx my gs.
-  unfold sync_cursor_with_mouse.
-  destruct (mouse_board_pos mx my); simpl; reflexivity.
+  intros mp gs.
+  unfold sync_cursor_with_mouse, with_mouse_board_pos.
+  destruct (mouse_board_pos mp); simpl; reflexivity.
 Qed.
 
 (** Mouse synchronization does not change the flag count. *)
 Lemma sync_cursor_with_mouse_flagged_total :
-  forall mx my gs,
-    flagged_total (board (sync_cursor_with_mouse mx my gs)) =
+  forall mp gs,
+    flagged_total (board (sync_cursor_with_mouse mp gs)) =
     flagged_total (board gs).
 Proof.
-  intros mx my gs.
-  unfold sync_cursor_with_mouse.
-  destruct (mouse_board_pos mx my); simpl; reflexivity.
+  intros mp gs.
+  unfold sync_cursor_with_mouse, with_mouse_board_pos.
+  destruct (mouse_board_pos mp); simpl; reflexivity.
 Qed.
 
 (** Predicate saying that the current cursor lies inside the board. *)
@@ -165,77 +165,82 @@ Qed.
 
 (** A reveal click outside the board has no effect. *)
 Lemma mouse_reveal_outside_noop :
-  forall mx my gs,
-    mouse_board_pos mx my = None ->
-    mouse_reveal mx my gs = gs.
+  forall mp gs,
+    mouse_board_pos mp = None ->
+    mouse_reveal mp gs = gs.
 Proof.
-  intros mx my gs Hmouse.
-  unfold mouse_reveal.
+  intros mp gs Hmouse.
+  unfold mouse_reveal, with_mouse_board_pos.
   rewrite Hmouse.
   reflexivity.
 Qed.
 
 (** A flag click outside the board has no effect. *)
 Lemma mouse_flag_outside_noop :
-  forall mx my gs,
-    mouse_board_pos mx my = None ->
-    mouse_flag mx my gs = gs.
+  forall mp gs,
+    mouse_board_pos mp = None ->
+    mouse_flag mp gs = gs.
 Proof.
-  intros mx my gs Hmouse.
-  unfold mouse_flag.
+  intros mp gs Hmouse.
+  unfold mouse_flag, with_mouse_board_pos.
   rewrite Hmouse.
   reflexivity.
 Qed.
 
 (** A reveal click inside the board becomes reveal-at-cursor after moving the cursor. *)
 Lemma mouse_reveal_inside :
-  forall mx my p gs,
-    mouse_board_pos mx my = Some p ->
-    mouse_reveal mx my gs = reveal_at_cursor (set_cursor p gs).
+  forall mp p gs,
+    mouse_board_pos mp = Some p ->
+    mouse_reveal mp gs = reveal_at_cursor (set_cursor p gs).
 Proof.
-  intros mx my p gs Hmouse.
-  unfold mouse_reveal.
+  intros mp p gs Hmouse.
+  unfold mouse_reveal, with_mouse_board_pos.
   rewrite Hmouse.
   reflexivity.
 Qed.
 
 (** A flag click inside the board becomes flag-at-cursor after moving the cursor. *)
 Lemma mouse_flag_inside :
-  forall mx my p gs,
-    mouse_board_pos mx my = Some p ->
-    mouse_flag mx my gs = toggle_flag_at_cursor (set_cursor p gs).
+  forall mp p gs,
+    mouse_board_pos mp = Some p ->
+    mouse_flag mp gs = toggle_flag_at_cursor (set_cursor p gs).
 Proof.
-  intros mx my p gs Hmouse.
-  unfold mouse_flag.
+  intros mp p gs Hmouse.
+  unfold mouse_flag, with_mouse_board_pos.
   rewrite Hmouse.
   reflexivity.
 Qed.
 
 (** The quit event always sets the quit flag in the event handler result. *)
 Lemma handle_event_quit_flag :
-  forall mx my gs,
-    fst (handle_event 1 mx my gs) = true.
+  forall gs,
+    fst (handle_event EventQuit gs) = true.
 Proof.
   reflexivity.
 Qed.
 
-(** The restart event always returns the restarted game state. *)
+(** The restart key always returns the restarted game state. *)
 Lemma handle_event_restart_state :
-  forall mx my gs,
-    snd (handle_event 8 mx my gs) = restart_state gs.
+  forall gs,
+    snd (handle_event (EventKeyDown KeyR) gs) = restart_state gs.
 Proof.
   reflexivity.
 Qed.
 
-(** Unknown events leave the game state unchanged and do not request quit. *)
-Lemma handle_event_unknown_noop :
-  forall ev mx my gs,
-    10 < ev ->
-    handle_event ev mx my gs = (false, gs).
+(** Key release events are ignored by the event handler. *)
+Lemma handle_event_key_up_noop :
+  forall key gs,
+    handle_event (EventKeyUp key) gs = (false, gs).
 Proof.
-  intros ev mx my gs Hev.
-  unfold handle_event.
-  destruct ev as [|[|[|[|[|[|[|[|[|[|[|ev]]]]]]]]]]]; try lia; reflexivity.
+  reflexivity.
+Qed.
+
+(** Empty polls leave the game state unchanged and do not request quit. *)
+Lemma handle_event_none_noop :
+  forall gs,
+    handle_event EventNone gs = (false, gs).
+Proof.
+  reflexivity.
 Qed.
 
 (** Every modeled interaction step preserves nonnegativity of the flag count. *)
