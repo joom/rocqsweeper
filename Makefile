@@ -24,8 +24,8 @@ ifeq ($(IS_CLANG),yes)
   BRACKET_DEPTH_FLAG := -fbracket-depth=1024
 endif
 
-SDL2_CFLAGS := $(shell pkg-config --cflags sdl2 SDL2_image)
-SDL2_LIBS   := $(shell pkg-config --libs sdl2 SDL2_image)
+SDL2_CFLAGS := $(shell pkg-config --cflags sdl2 SDL2_image SDL2_mixer)
+SDL2_LIBS   := $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer)
 
 CXXFLAGS := -std=c++23 $(BRACKET_DEPTH_FLAG) -I$(GEN_DIR) -I$(SRC_DIR) -I$(CRANE_DIR)/theories/cpp $(SDL2_CFLAGS)
 OPT ?= -O0

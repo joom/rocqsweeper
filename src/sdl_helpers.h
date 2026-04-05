@@ -1,22 +1,53 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 #include <cstdint>
-#include <cstring>
-#include <spawn.h>
 #include <string>
-
-extern char **environ;
+#include <unordered_map>
 
 // Opaque types for Rocq extraction
 using sdl_window = SDL_Window*;
 using sdl_renderer = SDL_Renderer*;
 using sdl_texture = SDL_Texture*;
 
+namespace {
+inline bool &sdl_audio_ready() {
+  static bool ready = false;
+  return ready;
+}
+
+inline std::unordered_map<std::string, Mix_Chunk*> &sdl_sound_cache() {
+  static std::unordered_map<std::string, Mix_Chunk*> cache;
+  return cache;
+}
+
+inline void sdl_init_audio() {
+  if (sdl_audio_ready()) return;
+  if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) return;
+  if ((Mix_Init(MIX_INIT_MP3) & MIX_INIT_MP3) == 0) return;
+  if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) != 0) return;
+  sdl_audio_ready() = true;
+}
+
+inline void sdl_shutdown_audio() {
+  for (auto &entry : sdl_sound_cache()) {
+    if (entry.second != nullptr) Mix_FreeChunk(entry.second);
+  }
+  sdl_sound_cache().clear();
+  if (sdl_audio_ready()) {
+    Mix_CloseAudio();
+    Mix_Quit();
+    sdl_audio_ready() = false;
+  }
+}
+}
+
 // SDL init / teardown
 inline sdl_window sdl_create_window(const std::string &title,
                                     unsigned int w, unsigned int h) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) return nullptr;
+  sdl_init_audio();
   return SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
                           SDL_WINDOWPOS_CENTERED, (int)w, (int)h,
                           SDL_WINDOW_SHOWN);
@@ -28,6 +59,7 @@ inline sdl_renderer sdl_create_renderer(sdl_window win) {
 }
 
 inline void sdl_destroy(sdl_renderer ren, sdl_window win) {
+  sdl_shutdown_audio();
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(win);
   SDL_Quit();
@@ -59,7 +91,6 @@ inline void sdl_draw_point(sdl_renderer r,
                            unsigned int x, unsigned int y) {
   SDL_RenderDrawPoint(r, (int)x, (int)y);
 }
-
 
 // current mouse position in window coordinates
 inline unsigned int sdl_last_mouse_x() {
@@ -150,48 +181,18 @@ inline sdl_texture sdl_load_texture(sdl_renderer ren,
 
 inline void sdl_play_sound(const std::string &path) {
   if (path.empty()) return;
-  auto try_spawn = [&](const char *prog, char *const argv[]) -> bool {
-    pid_t pid;
-    return posix_spawnp(&pid, prog, nullptr, nullptr, argv, environ) == 0;
-  };
-
-#if defined(__APPLE__)
-  char *const afplay_argv[] = {
-      const_cast<char *>("afplay"),
-      const_cast<char *>(path.c_str()),
-      nullptr
-  };
-  (void)try_spawn("afplay", afplay_argv);
-#elif defined(__linux__)
-  char *const mpg123_argv[] = {
-      const_cast<char *>("mpg123"),
-      const_cast<char *>("-q"),
-      const_cast<char *>(path.c_str()),
-      nullptr
-  };
-  if (try_spawn("mpg123", mpg123_argv)) return;
-
-  char *const ffplay_argv[] = {
-      const_cast<char *>("ffplay"),
-      const_cast<char *>("-nodisp"),
-      const_cast<char *>("-autoexit"),
-      const_cast<char *>("-loglevel"),
-      const_cast<char *>("quiet"),
-      const_cast<char *>(path.c_str()),
-      nullptr
-  };
-  if (try_spawn("ffplay", ffplay_argv)) return;
-
-  char *const play_argv[] = {
-      const_cast<char *>("play"),
-      const_cast<char *>("-q"),
-      const_cast<char *>(path.c_str()),
-      nullptr
-  };
-  (void)try_spawn("play", play_argv);
-#else
-  (void)path;
-#endif
+  sdl_init_audio();
+  if (!sdl_audio_ready()) return;
+  auto &cache = sdl_sound_cache();
+  Mix_Chunk *chunk = nullptr;
+  auto it = cache.find(path);
+  if (it != cache.end()) {
+    chunk = it->second;
+  } else {
+    chunk = Mix_LoadWAV(path.c_str());
+    cache.emplace(path, chunk);
+  }
+  if (chunk != nullptr) Mix_PlayChannel(-1, chunk, 0);
 }
 
 inline void sdl_render_texture_rotated(sdl_renderer ren, sdl_texture tex,

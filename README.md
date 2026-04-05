@@ -1,6 +1,6 @@
 # Rocqsweeper
 
-Rocqsweeper is a Minesweeper game written in Rocq and extracted to C++ with [Crane](https://github.com/bloomberg/crane). The game uses SDL2 for rendering, and small external audio players for sound playback.
+Rocqsweeper is a Minesweeper game written in Rocq and extracted to C++ with [Crane](https://github.com/bloomberg/crane). The game uses SDL2 for rendering and SDL2_mixer for sound playback.
 
 ![Rocqsweeper screenshot](assets/screenshot.png)
 
@@ -22,11 +22,7 @@ You need:
 - `pkg-config`
 - SDL2
 - SDL2_image
-
-Runtime audio also needs a platform player in `PATH`:
-
-- macOS: `afplay`
-- Linux: one of `mpg123`, `ffplay`, or `play`
+- SDL2_mixer
 
 ## Getting started
 
@@ -50,7 +46,7 @@ git submodule update --init --recursive
 Install the SDL packages with Homebrew:
 
 ```bash
-brew install sdl2 sdl2_image
+brew install sdl2 sdl2_image sdl2_mixer
 ```
 
 If you want to use Homebrew LLVM instead of the system toolchain:
@@ -64,25 +60,7 @@ brew install llvm
 The exact package names vary by distribution, but you generally need:
 
 ```bash
-sudo apt install clang pkg-config libsdl2-dev libsdl2-image-dev
-```
-
-For sound playback, also install at least one of:
-
-```bash
-sudo apt install mpg123
-```
-
-or:
-
-```bash
-sudo apt install ffmpeg
-```
-
-or:
-
-```bash
-sudo apt install sox
+sudo apt install clang pkg-config libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
 ```
 
 ## Building
@@ -187,4 +165,4 @@ These proofs are about the actual Rocq implementation in [`theories/Rocqsweeper.
 - The build expects Crane at [`crane/`](./crane).
 - [`src/sdl_helpers.h`](./src/sdl_helpers.h) is the main handwritten C++ integration layer.
 - The extracted program now defines its own `main`, so there is no separate handwritten `main.cpp`.
-- If extraction succeeds but sound does not play on Linux, check that one of `mpg123`, `ffplay`, or `play` is installed.
+- [`src/sdl_helpers.h`](./src/sdl_helpers.h) initializes SDL audio lazily and caches loaded sound chunks for reuse.
