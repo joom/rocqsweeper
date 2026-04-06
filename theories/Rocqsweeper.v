@@ -856,19 +856,12 @@ Definition exit_game (win : sdl_window) (ren : sdl_renderer) : itree sdlE c_int 
   cleanup ren win ;;
   Ret c_zero.
 
-(** Transparent wrapper around [Tau] for guardedness.
-    The guardedness checker unfolds this to see the [Tau] constructor,
-    while extraction inlines it away. *)
-Definition tau_guard {E : Type -> Type} {R : Type}
-  (t : itree E R) : itree E R := Tau t.
-Crane Extract Inlined Constant tau_guard => "%a0".
-
 (** Main corecursive SDL game loop. *)
 CoFixpoint run_game (win : sdl_window) (ren : sdl_renderer)
                     (ls : loop_state) : itree sdlE c_int :=
   res <- process_frame ren ls ;;
   let '(quit, ls') := res in
-  if quit then exit_game win ren else tau_guard (run_game win ren ls').
+  if quit then exit_game win ren else Tau (run_game win ren ls').
 
 (** Program entry point used by extraction. *)
 Definition main : itree sdlE c_int :=
