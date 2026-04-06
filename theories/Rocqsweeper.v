@@ -9,7 +9,7 @@ From Stdlib Require Import Lists.List.
 Import ListNotations.
 From Stdlib Require Import Bool.
 From Stdlib Require Import Strings.String Strings.Ascii.
-From Crane Require Import Mapping.NatIntStd.
+From Crane Require Import Mapping.NatIntStd Mapping.NInt.
 From Crane Require Import Mapping.Std Monads.ITree.
 From Crane Require Extraction.
 From CraneSDL2 Require Import SDL.
