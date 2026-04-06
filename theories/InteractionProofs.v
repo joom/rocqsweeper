@@ -1,5 +1,6 @@
 From Stdlib Require Import Lia Bool PeanoNat.
-From RocqsweeperGame Require Import SDL Rocqsweeper GameProofs.
+From CraneSDL2 Require Import SDL.
+From RocqsweeperGame Require Import Rocqsweeper GameProofs.
 
 Import Rocqsweeper.
 

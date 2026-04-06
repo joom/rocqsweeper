@@ -2,3 +2,6 @@
 	path = crane
 	url = https://github.com/bloomberg/crane.git
 	branch = main
+[submodule "rocq-crane-sdl2"]
+	path = rocq-crane-sdl2
+	url = https://github.com/joom/rocq-crane-sdl2

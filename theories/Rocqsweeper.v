@@ -12,7 +12,7 @@ From Stdlib Require Import Strings.String Strings.Ascii.
 From Crane Require Import Mapping.NatIntStd.
 From Crane Require Import Mapping.Std Monads.ITree.
 From Crane Require Extraction.
-From RocqsweeperGame Require Import SDL.
+From CraneSDL2 Require Import SDL.
 
 Local Open Scope pstring_scope.
 Local Open Scope itree_scope.

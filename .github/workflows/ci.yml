@@ -53,6 +53,12 @@ jobs:
               opam exec -- dune install -p rocq-crane
               cd ..
             endGroup
+            startGroup "Build and install local SDL2 bindings"
+              cd rocq-crane-sdl2
+              opam exec -- dune build -p rocq-crane-sdl2 @install
+              opam exec -- dune install -p rocq-crane-sdl2
+              cd ..
+            endGroup
           script: |
             startGroup "Build Rocq theories"
               opam exec -- make check

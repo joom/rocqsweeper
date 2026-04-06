@@ -1,6 +1,6 @@
 # Rocqsweeper
 
-Rocqsweeper is a Minesweeper game written in Rocq and extracted to C++ with [Crane](https://github.com/bloomberg/crane). The game uses SDL2 for rendering and SDL2_mixer for sound playback.
+Rocqsweeper is a Minesweeper game written in Rocq and extracted to C++ with [Crane](https://github.com/bloomberg/crane). The game uses the separate [rocq-crane-sdl2](https://github.com/joom/rocq-crane-sdl2) bindings package for SDL2 rendering, input, textures, and audio.
 
 ![Rocqsweeper screenshot](assets/screenshot.png)
 
@@ -66,10 +66,11 @@ sudo apt install clang pkg-config libsdl2-dev libsdl2-image-dev libsdl2-mixer-de
 ### opam
 
 If you want to build the Rocq development through opam, pin the local Crane
-submodule first:
+and SDL2 binding submodules first:
 
 ```bash
 opam pin add rocq-crane ./crane
+opam pin add rocq-crane-sdl2 ./rocq-crane-sdl2
 ```
 
 Then you can install the Rocqsweeper package from the current checkout:
@@ -89,9 +90,10 @@ make
 This does four things:
 
 1. uses the local Crane checkout in `./crane`
-2. extracts [`theories/Rocqsweeper.v`](./theories/Rocqsweeper.v) and the SDL effect layer in [`theories/SDLDefs.v`](./theories/SDLDefs.v) and [`theories/SDL.v`](./theories/SDL.v) to C++
-3. copies the generated C++ into `src/generated/`
-4. compiles the final executable `./rocqsweeper`
+2. uses the local SDL2 binding checkout in `./rocq-crane-sdl2`
+3. extracts [`theories/Rocqsweeper.v`](./theories/Rocqsweeper.v) to C++
+4. copies the generated C++ into `src/generated/`
+5. compiles the final executable `./rocqsweeper`
 
 Build with a different optimization level:
 
@@ -145,15 +147,13 @@ This removes:
 ├── assets/
 │   └── *.mp3                sound effects
 ├── crane/                   Crane submodule used for extraction
+├── rocq-crane-sdl2/         SDL2 binding submodule used by the game
 ├── src/
-│   ├── generated/           extracted C++ build artifacts
-│   └── sdl_helpers.h        C++ SDL and audio helper functions
+│   └── generated/           extracted C++ build artifacts
 ├── theories/
 │   ├── GameProofs.v         proofs about the core Minesweeper rules
 │   ├── InteractionProofs.v  proofs about cursor movement and event handling
 │   ├── Rocqsweeper.v        game logic, rendering, sounds, extracted main loop
-│   ├── SDLDefs.v            shared SDL effect definitions and smart constructors
-│   ├── SDL.v                SDL extraction directives
 │   └── dune                 Rocq theory stanza
 ├── Makefile                 extraction and native build entrypoint
 ├── dune-project             Dune project file
@@ -178,7 +178,8 @@ These proofs are about the actual Rocq implementation in [`theories/Rocqsweeper.
 
 - The authoritative game logic lives in Rocq, not in the generated C++.
 - The build expects Crane at [`crane/`](./crane).
-- The opam package expects you to pin the local Crane submodule manually with `opam pin add rocq-crane ./crane`.
-- [`src/sdl_helpers.h`](./src/sdl_helpers.h) is the main handwritten C++ integration layer.
+- The build also expects the SDL2 bindings at [`rocq-crane-sdl2/`](./rocq-crane-sdl2).
+- The opam package expects you to pin both local submodules manually with `opam pin add rocq-crane ./crane` and `opam pin add rocq-crane-sdl2 ./rocq-crane-sdl2`.
+- [`rocq-crane-sdl2/src/sdl_helpers.h`](./rocq-crane-sdl2/src/sdl_helpers.h) is the handwritten C++ SDL integration layer used by extraction.
 - The extracted program now defines its own `main`, so there is no separate handwritten `main.cpp`.
-- [`src/sdl_helpers.h`](./src/sdl_helpers.h) initializes SDL audio lazily and caches loaded sound chunks for reuse.
+- [`rocq-crane-sdl2/src/sdl_helpers.h`](./rocq-crane-sdl2/src/sdl_helpers.h) initializes SDL audio lazily and caches loaded sound chunks for reuse.

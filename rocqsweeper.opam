@@ -15,6 +15,7 @@ depends: [
   "coq-paco"
   "rocq-runtime"
   "rocq-crane" {= "dev"}
+  "rocq-crane-sdl2" {= "dev"}
 ]
 build: [
   "dune" "build"
