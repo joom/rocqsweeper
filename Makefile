@@ -24,7 +24,7 @@ SDL2_CFLAGS = $(shell pkg-config --cflags sdl2 SDL2_image SDL2_mixer)
 SDL2_LIBS   = $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer)
 
 CXXFLAGS = -std=c++23 $(BRACKET_DEPTH_FLAG) -I$(GEN_DIR) -I$(SDL2_BINDINGS_DIR)/src -I$(CRANE_DIR)/theories/cpp $(SDL2_CFLAGS)
-OPT ?= -O0
+OPT ?= -O2
 
 .PHONY: all clean run extract check check-crane check-sdl-bindings prepare-sdl-bindings install-sdl-bindings repro
 
