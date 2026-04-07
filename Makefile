@@ -26,7 +26,7 @@ SDL2_LIBS   = $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer)
 CXXFLAGS = -std=c++23 $(BRACKET_DEPTH_FLAG) -I$(GEN_DIR) -I$(SDL2_BINDINGS_DIR)/src -I$(CRANE_DIR)/theories/cpp $(SDL2_CFLAGS)
 OPT ?= -O2
 
-.PHONY: all clean run extract check check-crane check-sdl-bindings prepare-sdl-bindings install-sdl-bindings repro
+.PHONY: all clean run extract check check-crane check-sdl-bindings prepare-sdl-bindings install-sdl-bindings
 
 all: rocqsweeper
 
@@ -73,10 +73,3 @@ clean:
 
 run: rocqsweeper
 	./rocqsweeper
-
-repro: check-crane theories/CraneMoveSharedPtrSegfault.v
-	dune clean
-	dune build theories/CraneMoveSharedPtrSegfault.vo
-	$(CXX) -std=c++23 -I$(BUILD_DIR) -I$(CRANE_DIR)/theories/cpp -include iostream -include string \
-		$(BUILD_DIR)/crane_move_shared_ptr_segfault.cpp \
-		-o crane_move_shared_ptr_segfault
