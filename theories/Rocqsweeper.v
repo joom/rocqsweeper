@@ -545,28 +545,28 @@ Definition glyph_row_data (g row : nat) : nat :=
 
 (** Draw one row of one bitmap glyph. *)
 Fixpoint draw_glyph_row (ren : sdl_renderer) (sx sy row_bits dx count scale : nat)
-  : itree sdlE void :=
+  : itree sdlE unit :=
   match count with
-  | 0 => Ret ghost
+  | 0 => Ret tt
   | S count' =>
     (if Nat.testbit row_bits (4 - dx)
      then sdl_fill_rect ren (sx + dx * scale) sy scale scale
-     else Ret ghost) ;;
+     else Ret tt) ;;
     draw_glyph_row ren sx sy row_bits (S dx) count' scale
   end.
 
 (** Draw all bitmap rows of one glyph. *)
 Fixpoint draw_glyph_rows (ren : sdl_renderer) (sx sy g row count scale : nat)
-  : itree sdlE void :=
+  : itree sdlE unit :=
   match count with
-  | 0 => Ret ghost
+  | 0 => Ret tt
   | S count' =>
     draw_glyph_row ren sx (sy + row * scale) (glyph_row_data g row) 0 5 scale ;;
     draw_glyph_rows ren sx sy g (S row) count' scale
   end.
 
 (** Draw a single glyph at a given location. *)
-Definition draw_one_glyph (ren : sdl_renderer) (sx sy g scale : nat) : itree sdlE void :=
+Definition draw_one_glyph (ren : sdl_renderer) (sx sy g scale : nat) : itree sdlE unit :=
   draw_glyph_rows ren sx sy g 0 7 scale.
 
 (** Map an ASCII character to the corresponding bitmap glyph id. *)
@@ -589,9 +589,9 @@ Fixpoint string_to_glyphs (s : String.string) : list nat :=
 
 (** Draw a list of glyph ids in a row. *)
 Fixpoint draw_glyphs (ren : sdl_renderer) (sx sy scale : nat) (glyphs : list nat)
-  : itree sdlE void :=
+  : itree sdlE unit :=
   match glyphs with
-  | [] => Ret ghost
+  | [] => Ret tt
   | g :: rest =>
     draw_one_glyph ren sx sy g scale ;;
     draw_glyphs ren (sx + 6 * scale) sy scale rest
@@ -599,25 +599,25 @@ Fixpoint draw_glyphs (ren : sdl_renderer) (sx sy scale : nat) (glyphs : list nat
 
 (** Draw the decimal digits of a natural number recursively. *)
 Fixpoint draw_number_digits (ren : sdl_renderer) (sx sy scale : nat)
-    (digits : list nat) : itree sdlE void :=
+    (digits : list nat) : itree sdlE unit :=
   match digits with
-  | [] => Ret ghost
+  | [] => Ret tt
   | d :: rest =>
     draw_one_glyph ren sx sy d scale ;;
     draw_number_digits ren (sx + 6 * scale) sy scale rest
   end.
 
 (** Draw a natural number using the bitmap font. *)
-Definition draw_number (ren : sdl_renderer) (n sx sy scale : nat) : itree sdlE void :=
+Definition draw_number (ren : sdl_renderer) (n sx sy scale : nat) : itree sdlE unit :=
   draw_number_digits ren sx sy scale (nat_digit_list n).
 
 (** Draw a Rocq string using the bitmap font. *)
 Definition draw_text (ren : sdl_renderer) (sx sy scale : nat) (msg : String.string)
-  : itree sdlE void :=
+  : itree sdlE unit :=
   draw_glyphs ren sx sy scale (string_to_glyphs msg).
 
 (** Draw the colored numeral for a revealed numbered cell. *)
-Definition draw_cell_number (ren : sdl_renderer) (n x y : nat) : itree sdlE void :=
+Definition draw_cell_number (ren : sdl_renderer) (n x y : nat) : itree sdlE unit :=
   let '(r, g, b) :=
     match n with
     | 1 => (40, 80, 210)
@@ -633,7 +633,7 @@ Definition draw_cell_number (ren : sdl_renderer) (n x y : nat) : itree sdlE void
   draw_one_glyph ren x y n 2.
 
 (** Draw the flag icon for a flagged cell. *)
-Definition draw_flag (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
+Definition draw_flag (ren : sdl_renderer) (x y : nat) : itree sdlE unit :=
   sdl_set_draw_color ren 60 60 60 ;;
   sdl_fill_rect ren (x + 15) (y + 8) 3 24 ;;
   sdl_set_draw_color ren 220 60 60 ;;
@@ -642,7 +642,7 @@ Definition draw_flag (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_fill_rect ren (x + 10) (y + 14) 6 3.
 
 (** Draw the mine icon for a mined cell. *)
-Definition draw_mine (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
+Definition draw_mine (ren : sdl_renderer) (x y : nat) : itree sdlE unit :=
   sdl_set_draw_color ren 30 30 30 ;;
   sdl_fill_rect ren (x + 12) (y + 12) 14 14 ;;
   sdl_fill_rect ren (x + 5) (y + 17) 28 4 ;;
@@ -651,7 +651,7 @@ Definition draw_mine (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
   sdl_fill_rect ren (x + 14) (y + 14) 4 4.
 
 (** Draw the background of a hidden cell. *)
-Definition draw_hidden_tile (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
+Definition draw_hidden_tile (ren : sdl_renderer) (x y : nat) : itree sdlE unit :=
   sdl_set_draw_color ren 132 151 173 ;;
   sdl_fill_rect ren x y cell_size cell_size ;;
   sdl_set_draw_color ren 176 190 205 ;;
@@ -662,7 +662,7 @@ Definition draw_hidden_tile (ren : sdl_renderer) (x y : nat) : itree sdlE void :
   sdl_fill_rect ren (x + cell_size - 5) y 5 cell_size.
 
 (** Draw the background of a revealed cell. *)
-Definition draw_revealed_tile (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
+Definition draw_revealed_tile (ren : sdl_renderer) (x y : nat) : itree sdlE unit :=
   sdl_set_draw_color ren 222 226 230 ;;
   sdl_fill_rect ren x y cell_size cell_size ;;
   sdl_set_draw_color ren 190 195 199 ;;
@@ -670,7 +670,7 @@ Definition draw_revealed_tile (ren : sdl_renderer) (x y : nat) : itree sdlE void
   sdl_fill_rect ren x y 1 cell_size.
 
 (** Draw the yellow selection frame around the current cursor cell. *)
-Definition draw_cursor (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
+Definition draw_cursor (ren : sdl_renderer) (x y : nat) : itree sdlE unit :=
   sdl_set_draw_color ren 255 215 0 ;;
   sdl_fill_rect ren x y cell_size 3 ;;
   sdl_fill_rect ren x y 3 cell_size ;;
@@ -679,36 +679,36 @@ Definition draw_cursor (ren : sdl_renderer) (x y : nat) : itree sdlE void :=
 
 (** Draw the visible contents of one tile. *)
 Definition draw_tile_contents (ren : sdl_renderer) (x y : nat) (t : tile) (show_mines : bool)
-  : itree sdlE void :=
+  : itree sdlE unit :=
   if tile_revealed t then
     if tile_mine t then draw_mine ren x y
-    else if Nat.eqb (tile_adjacent t) 0 then Ret ghost
+    else if Nat.eqb (tile_adjacent t) 0 then Ret tt
          else draw_cell_number ren (tile_adjacent t) (x + 16) (y + 13)
   else if tile_flagged t then
     draw_flag ren x y
   else if show_mines && tile_mine t then
     draw_mine ren x y
-  else Ret ghost.
+  else Ret tt.
 
 (** Draw one board row. *)
 Fixpoint draw_row (ren : sdl_renderer) (row col : nat) (cells : list tile)
-    (cur : position) (show_mines : bool) : itree sdlE void :=
+    (cur : position) (show_mines : bool) : itree sdlE unit :=
   match cells with
-  | [] => Ret ghost
+  | [] => Ret tt
   | t :: rest =>
     let x := cell_left col in
     let y := cell_top row in
     (if tile_revealed t then draw_revealed_tile ren x y else draw_hidden_tile ren x y) ;;
     draw_tile_contents ren x y t show_mines ;;
-    (if pos_eqb cur (mkPos row col) then draw_cursor ren x y else Ret ghost) ;;
+    (if pos_eqb cur (mkPos row col) then draw_cursor ren x y else Ret tt) ;;
     draw_row ren row (S col) rest cur show_mines
   end.
 
 (** Draw the whole board row by row. *)
 Fixpoint draw_rows (ren : sdl_renderer) (row : nat) (rows : list (list tile))
-    (cur : position) (show_mines : bool) : itree sdlE void :=
+    (cur : position) (show_mines : bool) : itree sdlE unit :=
   match rows with
-  | [] => Ret ghost
+  | [] => Ret tt
   | cells :: rest =>
     draw_row ren row 0 cells cur show_mines ;;
     draw_rows ren (S row) rest cur show_mines
@@ -731,18 +731,18 @@ Definition msg_restart_exit_hint : String.string := "Restart: R   Exit: Esc"%str
 
 (** Draw a text label followed by a numeric value. *)
 Definition draw_label_number (ren : sdl_renderer) (label : String.string) (n x y : nat)
-  : itree sdlE void :=
+  : itree sdlE unit :=
   sdl_set_draw_color ren 20 35 50 ;;
   draw_text ren x y 2 label ;;
   draw_number ren n (x + 78) y 2.
 
 (** Draw one line of status text. *)
-Definition draw_status_text (ren : sdl_renderer) (msg : String.string) (x y : nat) : itree sdlE void :=
+Definition draw_status_text (ren : sdl_renderer) (msg : String.string) (x y : nat) : itree sdlE unit :=
   sdl_set_draw_color ren 20 35 50 ;;
   draw_text ren x y 2 msg.
 
 (** Draw the counters, outcome banner, and controls help. *)
-Definition draw_status_bar (ren : sdl_renderer) (gs : game_state) : itree sdlE void :=
+Definition draw_status_bar (ren : sdl_renderer) (gs : game_state) : itree sdlE unit :=
   let top := board_height * cell_size in
   sdl_set_draw_color ren 208 214 221 ;;
   sdl_fill_rect ren 0 top win_width status_height ;;
@@ -752,13 +752,13 @@ Definition draw_status_bar (ren : sdl_renderer) (gs : game_state) : itree sdlE v
   draw_text ren 12 (top + 60) 2 msg_flag_hint ;;
   draw_text ren 12 (top + 80) 2 msg_restart_exit_hint ;;
   match game_phase gs with
-  | Playing => Ret ghost
+  | Playing => Ret tt
   | Won => draw_status_text ren msg_won 270 (top + 12)
   | Lost => draw_status_text ren msg_lost 282 (top + 12)
   end.
 
 (** Render one complete frame for the current game state. *)
-Definition render_frame (ren : sdl_renderer) (gs : game_state) : itree sdlE void :=
+Definition render_frame (ren : sdl_renderer) (gs : game_state) : itree sdlE unit :=
   sdl_set_draw_color ren 245 246 247 ;;
   sdl_clear ren ;;
   draw_rows ren 0 (board gs) (cursor gs)
@@ -773,12 +773,12 @@ Record loop_state : Type := mkLoop {
 }.
 
 (** Sleep long enough to respect the target frame time. *)
-Definition frame_delay (frame_start : nat) : itree sdlE void :=
+Definition frame_delay (frame_start : nat) : itree sdlE unit :=
   now2 <- sdl_get_ticks ;;
   let elapsed := now2 - frame_start in
   if Nat.ltb elapsed frame_ms
   then sdl_delay (frame_ms - elapsed)
-  else Ret ghost.
+  else Ret tt.
 
 (** Path to the sound played after revealing a mine. *)
 Definition snd_mine : PrimString.string := "assets/mine.mp3".
@@ -805,8 +805,8 @@ Definition is_reveal_event (ev : sdl_event) : bool :=
   end.
 
 (** Choose and play the appropriate reveal-related sound effect. *)
-Definition maybe_play_sound (ev : sdl_event) (before after : game_state) : itree sdlE void :=
-  if negb (is_reveal_event ev) then Ret ghost
+Definition maybe_play_sound (ev : sdl_event) (before after : game_state) : itree sdlE unit :=
+  if negb (is_reveal_event ev) then Ret tt
   else if negb (phase_eqb (game_phase before) Won) && phase_eqb (game_phase after) Won
        then sdl_play_sound snd_win
        else if negb (phase_eqb (game_phase before) Lost) && phase_eqb (game_phase after) Lost
@@ -814,7 +814,7 @@ Definition maybe_play_sound (ev : sdl_event) (before after : game_state) : itree
             else if Nat.ltb (hidden_safe_total (board after))
                              (hidden_safe_total (board before))
                  then sdl_play_sound snd_tap
-                 else Ret ghost.
+                 else Ret tt.
 
 (** Process one input frame and produce the next loop state. *)
 Definition process_frame (ren : sdl_renderer) (ls : loop_state)
@@ -840,7 +840,7 @@ Definition init_game : itree sdlE (sdl_window * sdl_renderer * loop_state) :=
   Ret (win, ren, mkLoop gs t0).
 
 (** Release SDL resources before exiting. *)
-Definition cleanup (ren : sdl_renderer) (win : sdl_window) : itree sdlE void :=
+Definition cleanup (ren : sdl_renderer) (win : sdl_window) : itree sdlE unit :=
   sdl_destroy ren win.
 
 End Rocqsweeper.
