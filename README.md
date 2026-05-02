@@ -23,6 +23,7 @@ You need:
 - SDL2
 - SDL2_image
 - SDL2_mixer
+- Emscripten, if you want the WebAssembly build
 
 ## Getting started
 
@@ -101,6 +102,53 @@ Build with a different optimization level:
 make OPT=-O2
 ```
 
+Run only the extraction step:
+
+```bash
+make extract
+```
+
+Run the Dune package check:
+
+```bash
+make check
+```
+
+## WebAssembly Build
+
+The generated C++ can also be compiled with Emscripten:
+
+```bash
+make web
+```
+
+This builds:
+
+```text
+docs/index.html
+docs/index.js
+docs/index.wasm
+docs/index.data
+```
+
+The web target uses Emscripten's SDL2 ports and preloads `assets/`, so the
+sound effects remain available through the virtual filesystem. It also uses a
+small browser-specific entry point in [`src/web_main.cpp`](./src/web_main.cpp)
+so the game advances one frame at a time through `emscripten_set_main_loop_arg`
+instead of running the native recursive `main` loop.
+
+Serve the generated files from a local HTTP server:
+
+```bash
+python3 -m http.server 8000 -d docs
+```
+
+Then open:
+
+```text
+http://localhost:8000/
+```
+
 ## Running
 
 Run the game:
@@ -138,6 +186,7 @@ This removes:
 - `./rocqsweeper`
 - `./src/generated/`
 - `./rocqsweeper.dSYM`
+- `./docs/`
 - Dune build outputs
 
 ## Repository structure
@@ -149,7 +198,9 @@ This removes:
 ├── crane/                   Crane submodule used for extraction
 ├── rocq-crane-sdl2/         SDL2 binding submodule used by the game
 ├── src/
-│   └── generated/           extracted C++ build artifacts
+│   ├── generated/           extracted C++ build artifacts
+│   ├── web_main.cpp         browser main loop entry point
+│   └── web_shell.html       Emscripten HTML shell
 ├── theories/
 │   ├── GameProofs.v         proofs about the core Minesweeper rules
 │   ├── InteractionProofs.v  proofs about cursor movement and event handling
