@@ -26,7 +26,7 @@ SDL2_LIBS   = $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer)
 CXXFLAGS = -std=c++23 $(BRACKET_DEPTH_FLAG) -I$(GEN_DIR) -I$(SDL2_BINDINGS_DIR)/src -I$(CRANE_DIR)/theories/cpp $(SDL2_CFLAGS)
 OPT ?= -O2
 
-.PHONY: all clean run extract check check-crane check-sdl-bindings prepare-sdl-bindings install-sdl-bindings
+.PHONY: all clean run extract check check-crane check-sdl-bindings install-crane install-sdl-bindings
 
 all: rocqsweeper
 
@@ -42,13 +42,10 @@ check-sdl-bindings:
 	   echo "Run: git submodule update --init"; \
 	   exit 1)
 
-prepare-sdl-bindings: check-sdl-bindings
-	@if [ -e $(SDL2_BINDINGS_DIR)/crane ]; then \
-	  echo "Removing nested $(SDL2_BINDINGS_DIR)/crane checkout; rocqsweeper uses top-level ./crane"; \
-	  rm -rf $(SDL2_BINDINGS_DIR)/crane; \
-	fi
+install-crane: check-crane
+	cd $(CRANE_DIR) && dune build -p rocq-crane @install && dune install -p rocq-crane
 
-install-sdl-bindings: check-crane prepare-sdl-bindings
+install-sdl-bindings: install-crane check-sdl-bindings
 	cd $(SDL2_BINDINGS_DIR) && dune build -p rocq-crane-sdl2 @install && dune install -p rocq-crane-sdl2
 
 extract: check-crane check-sdl-bindings install-sdl-bindings theories/Rocqsweeper.v
